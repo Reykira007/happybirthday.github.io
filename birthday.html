@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Happy Birthday!</title>
+    <style>
+        body {
+            margin: 0;
+            background: linear-gradient(45deg, #4b6cb7, #182848);
+            cursor: crosshair;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 200vh;
+            /* Menambahkan tinggi untuk memungkinkan scrolling */
+        }
+
+        canvas {
+            display: block;
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: -1;
+        }
+
+        h1 {
+            color: #fff;
+            font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+            font-size: 4em;
+            font-weight: bold;
+            -webkit-user-select: none;
+            user-select: none;
+            transition: color 0.3s ease-in-out;
+            text-align: center;
+            margin: 0;
+            padding: 0;
+            line-height: 1.2;
+            position: fixed;
+            top: 50px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 1;
+        }
+
+        h1:hover {
+            color: #ffcc00;
+        }
+
+        .scroll-down {
+            color: #fff;
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 1.2em;
+            cursor: pointer;
+            z-index: 1;
+        }
+
+        .present-container {
+            display: none;
+            /* Menghilangkan card box saat awal */
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            z-index: 1;
+        }
+
+        .present {
+            width: 100px;
+            cursor: pointer;
+            transition: transform 0.3s ease;
+        }
+
+        .present:hover {
+            transform: scale(1.1);
+        }
+
+        .confetti {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            background-color: #ffcc00;
+            border-radius: 50%;
+            animation: confetti-fall linear 5s infinite;
+        }
+
+        @keyframes confetti-fall {
+            0% {
+                transform: translate(0, -100vh) rotate(0deg);
+                opacity: 0;
+            }
+
+            100% {
+                transform: translate(calc(100vw * 2), 100vh) rotate(720deg);
+                opacity: 1;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Happy Birthday <br> Sayang ❤️❤️</h1>
+    <div class="scroll-down" onclick="scrollDown()">Scroll ke bawah untuk kejutan!</div>
+    <canvas id="birthday"></canvas>
+    <div class="present-container" id="presentContainer">
+        <img class="present" src="gift.png" alt="Gift Box" onclick="playMusic()">
+        <div class="confetti"></div>
+    </div>
+    <script>
+        const PI2 = Math.PI * 2
+        const random = (min, max) => Math.random() * (max - min + 1) + min | 0
+        const timestamp = _ => new Date().getTime()
+
+        class Birthday {
+            constructor() {
+                this.resize()
+
+                this.fireworks = []
+                this.counter = 0
+
+            }
+
+            resize() {
+                this.width = canvas.width = window.innerWidth
+                let center = this.width / 2 | 0
+                this.spawnA = center - center / 4 | 0
+                this.spawnB = center + center / 4 | 0
+
+                this.height = canvas.height = window.innerHeight
+                this.spawnC = this.height * .1
+                this.spawnD = this.height * .5
+
+            }
+
+            onClick(evt) {
+                let x = evt.clientX || evt.touches && evt.touches[0].pageX
+                let y = evt.clientY || evt.touches && evt.touches[0].pageY
+
+                let count = random(3, 5)
+                for (let i = 0; i < count; i++) this.fireworks.push(new Firework(
+                    random(this.spawnA, this.spawnB),
+                    this.height,
+                    x,
+                    y,
+                    random(0, 260),
+                    random(30, 110)))
+
+                this.counter = -1
+
+            }
+
+            update(delta) {
+                ctx.globalCompositeOperation = 'hard-light'
+                ctx.fillStyle = `rgba(20,20,20,${7 * delta})`
+                ctx.fillRect(0, 0, this.width, this.height)
+
+                ctx.globalCompositeOperation = 'lighter'
+                for (let firework of this.fireworks) firework.update(delta)
+
+                this.counter += delta * 3
+                if (this.counter >= 1) {
+                    this.fireworks.push(new Firework(
+                        random(this.spawnA, this.spawnB),
+                        this.height,
+                        random(0, this.width),
+                        random(this.spawnC, this.spawnD),
+                        random(0, 360),
+                        random(30, 110)))
+                    this.counter = 0
+                }
+
+                if (this.fireworks.length > 1000) this.fireworks = this.fireworks.filter(firework => !firework.dead)
+
+            }
+        }
+
+        class Firework {
+            constructor(x, y, targetX, targetY, shade, offsprings) {
+                this.dead = false
+                this.offsprings = offsprings
+
+                this.x = x
+                this.y = y
+                this.targetX = targetX
+                this.targetY = targetY
+
+                this.shade = shade
+                this.history = []
+            }
+            update(delta) {
+                if (this.dead) return
+
+                let xDiff = this.targetX - this.x
+                let yDiff = this.targetY - this.y
+                if (Math.abs(xDiff) > 3 || Math.abs(yDiff) > 3) {
+                    this.x += xDiff * 2 * delta
+                    this.y += yDiff * 2 * delta
+
+                    this.history.push({
+                        x: this.x,
+                        y: this.y
+                    })
+
+                    if (this.history.length > 20) this.history.shift()
+
+                } else {
+                    if (this.offsprings && !this.madeChilds) {
+
+                        let babies = this.offsprings / 2
+                        for (let i = 0; i < babies; i++) {
+                            let targetX = this.x + this.offsprings * Math.cos(PI2 * i / babies) | 0
+                            let targetY = this.y + this.offsprings * Math.sin(PI2 * i / babies) | 0
+
+                            birthday.fireworks.push(new Firework(this.x, this.y, targetX, targetY, this.shade, 0))
+
+                        }
+
+                    }
+                    this.madeChilds = true
+                    this.history.shift()
+                }
+
+                if (this.history.length === 0) this.dead = true
+                else if (this.offsprings) {
+                    for (let i = 0; this.history.length > i; i++) {
+                        let point = this.history[i]
+                        ctx.beginPath()
+                        ctx.fillStyle = 'hsl(' + this.shade + ',100%,' + i + '%)'
+                        ctx.arc(point.x, point.y, 1, 0, PI2, false)
+                        ctx.fill()
+                    }
+                } else {
+                    ctx.beginPath()
+                    ctx.fillStyle = 'hsl(' + this.shade + ',100%,50%)'
+                    ctx.arc(this.x, this.y, 1, 0, PI2, false)
+                    ctx.fill()
+                }
+
+            }
+        }
+
+        let canvas = document.getElementById('birthday')
+        let ctx = canvas.getContext('2d')
+
+        let then = timestamp()
+
+        let birthday = new Birthday
+        window.onresize = () => birthday.resize()
+        document.onclick = evt => birthday.onClick(evt)
+        document.ontouchstart = evt => birthday.onClick(evt)
+
+        function scrollDown() {
+            window.scrollTo({
+                top: window.innerHeight,
+                behavior: 'smooth'
+            });
+            document.getElementById("presentContainer").style.display = "block"; // Munculkan card box saat discroll
+        }
+
+        function playMusic() {
+            let audio = new Audio('birthday_song.mp3');
+            audio.play();
+            createConfetti(); // Panggil fungsi untuk membuat confetti
+        }
+
+        function createConfetti() {
+            let confettiContainer = document.createElement('div');
+            confettiContainer.classList.add('confetti');
+
+            for (let i = 0; i < 100; i++) { // Buat 100 butir confetti
+                let confetti = document.createElement('div');
+                confetti.style.left = Math.random() * window.innerWidth + 'px';
+                confetti.style.animationDelay = Math.random() + 's';
+                confettiContainer.appendChild(confetti);
+            }
+
+            document.body.appendChild(confettiContainer);
+        }
+
+        ; (function loop() {
+            requestAnimationFrame(loop)
+
+            let now = timestamp()
+            let delta = now - then
+
+            then = now
+            birthday.update(delta / 1000)
+
+
+        })()
+    </script>
+</body>
+
+</html>
