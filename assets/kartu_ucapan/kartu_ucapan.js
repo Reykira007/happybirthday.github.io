@@ -1,12 +1,12 @@
-(function() {
+(function () {
   function $(id) {
     return document.getElementById(id);
   }
 
   var card = $('card'),
-      openB = $('open'),
-      closeB = $('close'),
-      timer = null;
+    openB = $('open'),
+    closeB = $('close'),
+    timer = null;
   console.log('wat', card);
   openB.addEventListener('click', function () {
     card.setAttribute('class', 'open-half');
